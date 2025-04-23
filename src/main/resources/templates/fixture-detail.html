@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${fixture.homeTeam} + ' vs ' + ${fixture.awayTeam}"></title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div th:replace="fragments/header :: header"></div>
+    
+    <main class="container">
+        <div class="fixture-header">
+            <h1 th:text="${fixture.homeTeam} + ' vs ' + ${fixture.awayTeam}"></h1>
+            <div class="fixture-meta">
+                <span th:text="${#temporals.format(fixture.date, 'dd MMM yyyy HH:mm')}"></span>
+                <span th:text="${fixture.league}"></span>
+            </div>
+        </div>
+        
+        <div class="fixture-stats">
+            <div class="stat-card">
+                <h3>Head to Head</h3>
+                <div class="h2h-stats">
+                    <div th:each="stat : ${h2hStats}">
+                        <span th:text="${stat.key}"></span>
+                        <span th:text="${stat.value}"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Predictions</h3>
+                <div class="predictions">
+                    <div th:each="prediction : ${predictions}" class="prediction">
+                        <span th:text="${prediction.marketType}"></span>
+                        <span th:text="${prediction.predictedOutcome}"></span>
+                        <span th:text="'@' + ${prediction.odds}"></span>
+                        <span th:text="'(' + ${prediction.confidence} + '%)'"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

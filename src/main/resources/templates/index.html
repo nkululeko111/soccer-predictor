@@ -1,21 +1,45 @@
-<!-- /frontend/index.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8" />
-    <title>Soccer Betting AI</title>
-    <link rel="stylesheet" href="../static/css/style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Betting App</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" href="../static/css/dark-mode.css">
+
 </head>
 <body>
-<div class="container">
-    <h1>⚽ Soccer AI Betting App</h1>
-    <p>Welcome! Generate 100 odds tickets with AI-powered predictions.</p>
-
-    <nav>
-        <a href="tickets.html">🎟️ Generate Tickets</a>
-        <a href="../static/fixtures.html">📅 View Fixtures</a>
-        <a href="../static/stats.html">📊 Team Stats</a>
-    </nav>
-</div>
+    <div th:replace="fragments/header :: header"></div>
+    
+    <main class="container">
+        <section class="hero">
+            <h1>Smart Betting App</h1>
+            <p>AI-powered betting ticket generation for maximum returns</p>
+        </section>
+        
+        <section class="ticket-generator">
+            <h2>Generate New Ticket</h2>
+            <div class="controls">
+                <select id="ticket-type">
+                    <option value="first_half">First Half Focus</option>
+                    <option value="high_odds">High Odds (100x+)</option>
+                    <option value="safe_bets">Safe Bets</option>
+                </select>
+                <button id="generate-btn" class="btn">Generate</button>
+            </div>
+            
+            <div id="ticket-container" class="ticket-card"></div>
+            
+            <div class="ticket-actions">
+                <button id="save-ticket" class="btn">Save Ticket</button>
+                <button id="clear-ticket" class="btn secondary">Clear</button>
+            </div>
+        </section>
+    </main>
+    
+    <button class="theme-toggle" id="theme-toggle">🌓</button>
+    
+    <script src="/js/app.js"></script>
+    <script src="/js/ticket-builder.js"></script>
 </body>
 </html>

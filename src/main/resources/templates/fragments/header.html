@@ -1,10 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
 </head>
 <body>
-
+    <header th:fragment="header">
+        <nav>
+            <div class="logo">
+                <a href="/">SmartBet</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/tickets">My Tickets</a></li>
+                <li><a href="/fixtures">Fixtures</a></li>
+                <li th:if="${#authentication.principal == null}">
+                    <a href="/login">Login</a>
+                </li>
+                <li th:if="${#authentication.principal != null}">
+                    <a href="/profile" th:text="${#authentication.principal.username}"></a>
+                </li>
+            </ul>
+        </nav>
+    </header>
 </body>
 </html>

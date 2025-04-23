@@ -1,10 +1,34 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
 </head>
 <body>
-
+    <div th:fragment="ticket-card(ticket)" class="ticket-card">
+        <div class="ticket-header">
+            <h3 th:text="${ticket.name}"></h3>
+            <div class="ticket-meta">
+                <span class="odds-badge" th:text="${ticket.totalOdds}"></span>
+                <span th:text="${#temporals.format(ticket.createdDate, 'dd MMM yyyy')}"></span>
+                <span th:if="${ticket.isWon}" class="status won">WON</span>
+                <span th:unless="${ticket.isWon}" class="status lost">LOST</span>
+            </div>
+        </div>
+        
+        <div class="ticket-selections">
+            <div th:each="selection : ${ticket.selections}" class="selection">
+                <div class="teams" th:text="${selection.fixture.homeTeam} + ' vs ' + ${selection.fixture.awayTeam}"></div>
+                <div class="market">
+                    <span class="market-type" th:text="${selection.marketType}"></span>
+                    <span class="prediction" th:text="${selection.prediction}"></span>
+                    <span class="odds" th:text="'@' + ${selection.odds}"></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="ticket-actions">
+            <a th:href="@{/tickets/{id}(id=${ticket.id})}" class="btn">View Details</a>
+        </div>
+    </div>
 </body>
 </html>

@@ -1,0 +1,4 @@
+fixture_id,home_team,away_team,league,home_goals,away_goals,first_half_goals,btts_first_half,home_corners,away_corners,home_attack,away_attack,home_defense,away_defense,home_form,away_form,prediction
+12345,Team A,Team B,Premier League,2,1,1,0,6,4,85,78,82,75,WWLWD,LLWDL,home_win
+12346,Team C,Team D,La Liga,1,1,0,0,5,5,78,82,75,80,DLDWD,WWLDW,draw
+12347,Team E,Team F,Bundesliga,3,0,2,0,7,2,90,70,88,65,WWWWW,LLLLL,home_win
