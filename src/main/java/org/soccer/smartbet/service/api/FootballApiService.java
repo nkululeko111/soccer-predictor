@@ -1,56 +1,72 @@
 package org.soccer.smartbet.service.api;
 
-import org.soccer.smartbet.model.League;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
+import org.soccer.smartbet.domain.Fixture;
+import org.soccer.smartbet.domain.League;
+import org.soccer.smartbet.domain.Team;
+import org.soccer.smartbet.dto.FixtureDTO;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import java.net.http.HttpHeaders;
-import java.util.Comparator;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class FootballApiService {
-    private static final String API_BASE_URL = "https://v3.football.api-sports.io";
-    private final String apiKey;
-    private final RestTemplate restTemplate;
 
-    public FootballApiService(@Value("${football.api.key}") String apiKey) {
-        this.apiKey = apiKey;
-        this.restTemplate = new RestTemplate();
+    private final ApiClient apiClient;
+    private final ApiResponseParser parser;
+
+    public FootballApiService(ApiClient apiClient, ApiResponseParser parser) {
+        this.apiClient = apiClient;
+        this.parser = parser;
     }
 
+    @Cacheable("leagues")
     public List<League> getTopLeagues(int count) {
-        HttpHeaders headers = createHeaders();
-        String url = API_BASE_URL + "/leagues?current=true";
-
-        ResponseEntity<LeagueResponse> response = restTemplate.exchange(
-                url, HttpMethod.GET, new HttpEntity<>(headers), LeagueResponse.class);
-
-        return response.getBody().getResponse().stream()
-                .sorted(Comparator.comparingInt(League::getPopularity).reversed())
-                .limit(count)
-                .collect(Collectors.toList());
+        String response = apiClient.get("/leagues?current=true");
+        List<League> leagues = parser.parseLeagues(response);
+        return leagues.stream()
+            .sorted((l1, l2) -> Integer.compare(l2.getPopularity(), l1.getPopularity()))
+            .limit(count)
+            .toList();
     }
 
-    public List<Fixture> getFixtures(int leagueId, String season) {
-        // Implementation for fetching fixtures
+    @Cacheable(value = "fixtures", key = "{#leagueId, #date}")
+    public Page<FixtureDTO> getFixtures(Integer leagueId, LocalDate date, Pageable pageable) {
+        String endpoint = "/fixtures";
+        if (leagueId != null) endpoint += "?league=" + leagueId;
+        if (date != null) endpoint += (leagueId != null ? "&" : "?") + "date=" + date;
+        
+        String response = apiClient.get(endpoint);
+        List<Fixture> fixtures = parser.parseFixtures(response);
+        return parser.toPage(fixtures, pageable).map(this::convertToDTO);
     }
 
-    public TeamStatistics getTeamStatistics(int teamId, int leagueId, String season) {
-        // Implementation for fetching team stats
+    @Cacheable("fixtureDetails")
+    public FixtureDTO getFixtureDetails(int id) {
+        String response = apiClient.get("/fixtures?id=" + id);
+        Fixture fixture = parser.parseFixtureDetails(response);
+        return convertToDTO(fixture);
     }
 
-    public List<BettingOdds> getMatchOdds(int fixtureId) {
-        // Implementation for fetching odds
+    @Cacheable("teamStats")
+    public Map<String, Object> getTeamStats(int teamId, int leagueId, int season) {
+        String response = apiClient.get(
+            String.format("/teams/statistics?team=%d&league=%d&season=%d", 
+            teamId, leagueId, season));
+        return parser.parseTeamStats(response);
     }
 
-    private HttpHeaders createHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-rapidapi-key", apiKey);
-        headers.set("x-rapidapi-host", "v3.football.api-sports.io");
-        return headers;
+    private FixtureDTO convertToDTO(Fixture fixture) {
+        return new FixtureDTO(
+            fixture.getId(),
+            fixture.getLeague().getName(),
+            fixture.getHomeTeam().getName(),
+            fixture.getAwayTeam().getName(),
+            fixture.getDate()
+        );
     }
 }

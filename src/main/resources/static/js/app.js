@@ -1,21 +1,51 @@
-// /frontend/js/app.js
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize the application
+  initTicketBuilder();
+  initEventListeners();
+});
 
-async function generateTickets() {
-  const response = await fetch("http://localhost:8080/api/tickets"); // your backend endpoint
-  const tickets = await response.json();
+function initTicketBuilder() {
+  // Ticket builder functionality
+  console.log("Ticket builder initialized");
+}
 
-  const ticketsDiv = document.getElementById("tickets");
-  ticketsDiv.innerHTML = "";
+function initEventListeners() {
+  // All event listeners for the application
+  document.getElementById('generate-ticket-btn').addEventListener('click', generateTicket);
+}
 
-  tickets.forEach((ticket, index) => {
-    const div = document.createElement("div");
-    div.className = "ticket";
+function generateTicket() {
+  const type = document.getElementById('ticket-type').value;
+  fetch(`/api/tickets/generate?type=${type}`, {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      }
+  })
+  .then(response => response.json())
+  .then(ticket => {
+      renderTicket(ticket);
+  })
+  .catch(error => console.error('Error:', error));
+}
 
-    div.innerHTML = `<h3>🎯 Ticket ${index + 1}</h3><ul>` +
-      ticket.items.map(item => `
-        <li><strong>${item.market}</strong>: ${item.homeTeam} vs ${item.awayTeam} → ${item.prediction}</li>
-      `).join("") + "</ul>";
-
-    ticketsDiv.appendChild(div);
-  });
+function renderTicket(ticket) {
+  const container = document.getElementById('tickets-container');
+  const ticketElement = document.createElement('div');
+  ticketElement.className = 'ticket-card';
+  ticketElement.innerHTML = `
+      <div class="ticket-header">
+          <h3>${ticket.name}</h3>
+          <span class="odds-badge">${ticket.totalOdds.toFixed(2)}</span>
+      </div>
+      <div class="ticket-body">
+          ${ticket.selections.map(selection => `
+              <div class="selection-row">
+                  <span>${selection.homeTeam} vs ${selection.awayTeam}</span>
+                  <span>${selection.marketType}: ${selection.prediction} @${selection.odds.toFixed(2)}</span>
+              </div>
+          `).join('')}
+      </div>
+  `;
+  container.appendChild(ticketElement);
 }

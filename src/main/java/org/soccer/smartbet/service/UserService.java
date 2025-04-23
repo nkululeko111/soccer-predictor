@@ -1,94 +1,70 @@
 package org.soccer.smartbet.service;
 
-import org.soccer.smartbet.model.Ticket;
-import org.soccer.smartbet.model.TicketItem;
+import org.soccer.smartbet.domain.User;
+import org.soccer.smartbet.dto.*;
+import org.soccer.smartbet.repository.UserRepository;
+import org.soccer.smartbet.security.JwtTokenProvider;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.*;
 
 @Service
 public class UserService {
 
-    private final Random random = new Random();
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtTokenProvider tokenProvider;
 
-    public List<Ticket> generateTickets() {
-        List<Ticket> tickets = new ArrayList<>();
-        tickets.add(generateFirstHalfFocusedTicket());
-        tickets.add(generateGeneralTicket("General Market A"));
-        tickets.add(generateGeneralTicket("General Market B"));
-        return tickets;
+    public UserService(UserRepository userRepository,
+                     PasswordEncoder passwordEncoder,
+                     AuthenticationManager authenticationManager,
+                     JwtTokenProvider tokenProvider) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
+        this.tokenProvider = tokenProvider;
     }
 
-    private Ticket generateFirstHalfFocusedTicket() {
-        List<TicketItem> items = new ArrayList<>();
-        double totalOdds = 1.0;
+    public JwtResponse authenticateUser(LoginRequest loginRequest) {
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                loginRequest.getUsername(),
+                loginRequest.getPassword()));
+        
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = tokenProvider.generateToken(authentication);
+        return new JwtResponse(jwt);
+    }
 
-        for (int i = 0; i < 12; i++) {
-            TicketItem item = new TicketItem();
-            item.setHomeTeam("TeamA" + i);
-            item.setAwayTeam("TeamB" + i);
-            item.setMarket("1st Half Over 0.5");
-            item.setPrediction("Over");
-            item.setOdd(randomOdd(1.3, 1.8));
-            items.add(item);
-            totalOdds *= item.getOdd();
+    public void registerUser(SignupRequest signUpRequest) {
+        if (userRepository.existsByUsername(signUpRequest.getUsername())) {
+            throw new RuntimeException("Username is already taken!");
         }
 
-        Ticket ticket = new Ticket();
-        ticket.setName("First Half Special");
-        ticket.setMatches(items);
-        ticket.setTotalOdds(round(totalOdds));
-        return ticket;
+        User user = new User();
+        user.setUsername(signUpRequest.getUsername());
+        user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
+        user.setEmail(signUpRequest.getEmail());
+        userRepository.save(user);
     }
 
-    private Ticket generateGeneralTicket(String name) {
-        List<String> markets = Arrays.asList(
-                "Match Result (1X2)", "Both Teams to Score", "Over 2.5 Goals",
-                "Asian Handicap", "Draw No Bet", "Double Chance",
-                "Winning Margin", "1st Half Winner", "Correct Score"
-        );
-
-        List<TicketItem> items = new ArrayList<>();
-        double totalOdds = 1.0;
-
-        for (int i = 0; i < 12; i++) {
-            TicketItem item = new TicketItem();
-            item.setHomeTeam("TeamA" + i);
-            item.setAwayTeam("TeamB" + i);
-            item.setMarket(markets.get(random.nextInt(markets.size())));
-            item.setPrediction(generateRandomPrediction(item.getMarket()));
-            item.setOdd(randomOdd(1.3, 2.0));
-            items.add(item);
-            totalOdds *= item.getOdd();
-        }
-
-        Ticket ticket = new Ticket();
-        ticket.setName(name);
-        ticket.setMatches(items);
-        ticket.setTotalOdds(round(totalOdds));
-        return ticket;
+    public UserProfile getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        return convertToProfile(user);
     }
 
-    private double randomOdd(double min, double max) {
-        return round(min + (max - min) * random.nextDouble());
-    }
-
-    private String generateRandomPrediction(String market) {
-        return switch (market) {
-            case "Match Result (1X2)" -> List.of("1", "X", "2").get(random.nextInt(3));
-            case "Both Teams to Score" -> random.nextBoolean() ? "Yes" : "No";
-            case "Over 2.5 Goals" -> "Over";
-            case "Asian Handicap" -> "+1.5 Home";
-            case "Draw No Bet" -> "Home";
-            case "Double Chance" -> "1X";
-            case "Winning Margin" -> "Home by 1";
-            case "1st Half Winner" -> random.nextBoolean() ? "Home" : "Away";
-            case "Correct Score" -> "2-1";
-            default -> "Unknown";
-        };
-    }
-
-    private double round(double val) {
-        return Math.round(val * 100.0) / 100.0;
+    private UserProfile convertToProfile(User user) {
+        UserProfile profile = new UserProfile();
+        profile.setUsername(user.getUsername());
+        profile.setEmail(user.getEmail());
+        return profile;
     }
 }
